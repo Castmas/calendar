@@ -1,0 +1,108 @@
+body {
+  font-family: "Pretendard", Arial, sans-serif;
+  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  padding: 20px;
+  background-size: cover;
+  background-position: center;
+  min-height: 100vh;
+  backdrop-filter: blur(4px);
+}
+
+h1 {
+  text-align: center;
+  color: #333;
+  font-size: 2rem;
+  margin-bottom: 15px;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+  margin: 20px auto;
+  max-width: 800px;
+}
+
+.header {
+  font-weight: bold;
+  text-align: center;
+  background: #f8f9fa;
+  padding: 8px 0;
+  border-radius: 8px;
+  color: #555;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.cell {
+  border: 1px solid #e0e0e0;
+  background: white;
+  min-height: 90px;
+  position: relative;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.cell:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+}
+
+.day {
+  position: absolute;
+  top: 6px;
+  left: 8px;
+  font-size: 13px;
+  font-weight: bold;
+  color: #333;
+}
+
+.text {
+  font-size: 12px;
+  margin-top: 25px;
+  color: #555;
+}
+
+.sticker {
+  font-size: 22px;
+  margin-top: 20px;
+}
+
+.img {
+  width: 35px;
+  height: 35px;
+  margin-top: 20px;
+  border-radius: 6px;
+  object-fit: cover;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+
+.panel,
+.backgrounds {
+  margin-top: 20px;
+  text-align: center;
+}
+
+button {
+  margin: 5px;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  background: #4facfe;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background 0.2s ease-in-out;
+}
+
+button:hover {
+  background: #00c6ff;
+}

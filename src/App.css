@@ -1,0 +1,51 @@
+body,
+html,
+#root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: "Georgia", serif;
+}
+
+.main-screen {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-size: cover;
+  background-position: center;
+  text-align: center;
+}
+
+.title-img {
+  width: 100%;
+  max-width: 1300px;
+  margin-bottom: 50px;
+}
+
+.button-container {
+  display: flex;
+  gap: 80px;
+}
+
+.button-img {
+  width: 180px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.button-img:hover {
+  transform: scale(1.05);
+}
+
+.login-screen,
+.calendar-screen {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  font-size: 3rem;
+  background-color: #111;
+  color: white;
+}
