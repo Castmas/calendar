@@ -4,7 +4,7 @@ import backgroundImage from "./image/background.png";
 import maintxt from "./image/maintxt.png";
 import login from "./image/login.png";
 import start from "./image/start.png";
-import CalendarScreen from "./components/CalendarScreen";
+import CalendarScreen from "./components/Calendar/CalendarScreen";
 import LoginModal from "./components/Login/LoginModal";
 import MyPage from "./components/MyPage";
 
