@@ -1,3 +1,5 @@
+@import url('//fonts.googleapis.com/earlyaccess/nanumpenscript.css');
+
 body,
 html,
 #root {
@@ -5,6 +7,7 @@ html,
   padding: 0;
   height: 100%;
   font-family: "Georgia", serif;
+  background-color: white;
 }
 
 .main-screen {
@@ -20,8 +23,8 @@ html,
 
 .title-img {
   width: 100%;
-  max-width: 1300px;
-  margin-bottom: 50px;
+  max-width: 1500px;
+  margin-bottom: 120px;
 }
 
 .button-container {
@@ -39,8 +42,7 @@ html,
   transform: scale(1.05);
 }
 
-.login-screen,
-.calendar-screen {
+.login-screen {
   height: 100vh;
   display: flex;
   justify-content: center;

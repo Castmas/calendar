@@ -1,6 +1,5 @@
 import React from "react";
 import CalendarGrid from "./CalendarGrid";
-import "./CalendarScreen.scss";
 
 function CalendarScreen(props) {
   return (
