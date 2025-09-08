@@ -1,0 +1,175 @@
+.sub-menu {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 20px 30px;
+  border-radius: 30px;
+  backdrop-filter: blur(10px);
+  z-index: 999;
+  max-width: 80vw;
+  overflow-x: auto;
+  width: 40vw;
+
+  &.text-menu {
+    bottom: 200px;
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .text-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: center;
+    background: transparent;
+
+    .text-input {
+      padding: 10px 15px;
+      border-radius: 8px;
+      border: 2px solid #d1d5db;
+      font-size: 16px;
+      width: 200px;
+      outline: none;
+
+      &:focus {
+        border-color: #3b82f6;
+      }
+    }
+
+    .text-options {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+
+      .font-select,
+      .size-select {
+        padding: 6px 10px;
+        border-radius: 6px;
+        border: 2px solid #d1d5db;
+        font-size: 14px;
+        outline: none;
+
+        &:focus {
+          border-color: #3b82f6;
+        }
+      }
+
+      .color-input {
+        width: 40px;
+        height: 32px;
+        border: 2px solid #d1d5db;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+    }
+
+    .add-text-button {
+      padding: 10px 20px;
+      border-radius: 20px;
+      border: none;
+      background: #3b82f6;
+      color: white;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease;
+
+      &:hover {
+        background: #2563eb;
+      }
+    }
+  }
+
+  .tape-options,
+  .sticker-options {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .tape-option {
+    width: 60px;
+    height: 20px;
+    background-size: cover;
+    background-position: center;
+    border-radius: 2px;
+    cursor: grab;
+    transform: rotate(-8deg);
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0);
+
+    &.selected {
+      border: 1px solid #ccc;
+    }
+
+    &:hover {
+      transform: rotate(-8deg) scale(1.1);
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .sticker-option {
+    width: 30px;
+    height: 30px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    cursor: grab;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 4px;
+
+    &.selected {
+      border-color: #3b82f6;
+    }
+
+    &:hover {
+      transform: scale(1.1);
+    }
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  .calendar-bg-options,
+  .main-bg-options {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .bg-option {
+    width: 40px;
+    height: 30px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &.selected {
+      border: 2px solid #3b82f6;
+    }
+
+    &:not(.selected) {
+      border: 2px solid #d1d5db;
+    }
+
+    &.upload-button {
+      background: white;
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #666;
+    }
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+}

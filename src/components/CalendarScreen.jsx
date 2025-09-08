@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 
-function CalendarScreen({ onGoToMyPage }) {
+function CalendarScreen({ onGoToMyPage = () => {} }) {
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth();
@@ -13,7 +13,6 @@ function CalendarScreen({ onGoToMyPage }) {
       daysInMonth: last.getDate(),
     };
   }, [year, month]);
-
 
   const [notes, setNotes] = useState({});
   const [selectedTape, setSelectedTape] = useState("gray");
@@ -28,6 +27,25 @@ function CalendarScreen({ onGoToMyPage }) {
   const [isDraggingAttached, setIsDraggingAttached] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [selectedMenu, setSelectedMenu] = useState(null);
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [isRotating, setIsRotating] = useState(false);
+  const [editingItems, setEditingItems] = useState(new Set());
+  const resizeStartRef = useRef({ x: 0, y: 0, width: 0, height: 0 });
+  const rotateStartRef = useRef({ angle: 0, centerX: 0, centerY: 0 });
+
+  // 엔터키 이벤트 리스너
+  React.useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (e.key === 'Enter') {
+        setEditingItems(new Set());
+        setSelectedItem(null);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, []);
 
   // 공유 함수
   const handleShare = async () => {
@@ -35,7 +53,6 @@ function CalendarScreen({ onGoToMyPage }) {
     if (!calendarElement) return;
 
     try {
-      // html2canvas를 동적으로 로드
       if (!window.html2canvas) {
         const script = document.createElement('script');
         script.src = 'https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
@@ -53,14 +70,12 @@ function CalendarScreen({ onGoToMyPage }) {
 
       canvas.toBlob((blob) => {
         if (navigator.share && navigator.canShare({ files: [new File([blob], 'calendar.png', { type: 'image/png' })] })) {
-          // 모바일 네이티브 공유
           navigator.share({
             title: `${year}년 ${month + 1}월 캘린더`,
             text: '내 캘린더를 공유합니다',
             files: [new File([blob], 'calendar.png', { type: 'image/png' })]
           });
         } else {
-          // 데스크톱 다운로드
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
           a.href = url;
@@ -75,6 +90,36 @@ function CalendarScreen({ onGoToMyPage }) {
       alert('캘린더 캡처 중 오류가 발생했습니다.');
       console.error('Share error:', error);
     }
+  };
+
+  // 사진 업로드 함수
+  const handlePhotoUpload = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = (e) => {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const newItem = {
+            id: Date.now(),
+            type: 'photo',
+            value: e.target.result,
+            x: 400,
+            y: 200,
+            rotation: Math.random() * 20 - 10,
+            width: 100,
+            height: 100
+          };
+          setAttachedItems(prev => [...prev, newItem]);
+          setEditingItems(prev => new Set([...prev, newItem.id])); // 새 사진을 편집 모드로 설정
+          setSelectedItem(newItem.id);
+        };
+        reader.readAsDataURL(file);
+      }
+    };
+    input.click();
   };
 
   // 메모 관련 함수들
@@ -150,6 +195,12 @@ function CalendarScreen({ onGoToMyPage }) {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
+  // 아이템 선택 및 편집 함수들
+  const handleItemClick = (e, itemId) => {
+    e.stopPropagation();
+    setSelectedItem(selectedItem === itemId ? null : itemId);
+  };
+
   const handleAttachedItemMouseDown = (e, itemId) => {
     e.preventDefault();
     e.stopPropagation();
@@ -167,8 +218,7 @@ function CalendarScreen({ onGoToMyPage }) {
     });
 
     setIsDraggingAttached(itemId);
-    
-    setIsDraggingAttached(itemId);
+    setSelectedItem(itemId);
 
     const handleMouseMove = (e) => {
       const calendarRect = document.querySelector('[data-calendar="true"]').getBoundingClientRect();
@@ -178,7 +228,7 @@ function CalendarScreen({ onGoToMyPage }) {
       setAttachedItems(prev => 
         prev.map(item => 
           item.id === itemId 
-            ? { ...item, x: Math.max(0, Math.min(newX, calendarRect.width - 50)), y: Math.max(0, Math.min(newY, calendarRect.height - 50)) }
+            ? { ...item, x: Math.max(0, Math.min(newX, calendarRect.width - (item.width || 50))), y: Math.max(0, Math.min(newY, calendarRect.height - (item.height || 50))) }
             : item
         )
       );
@@ -186,6 +236,96 @@ function CalendarScreen({ onGoToMyPage }) {
 
     const handleMouseUp = () => {
       setIsDraggingAttached(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // 리사이즈 핸들러
+  const handleResizeStart = (e, itemId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const item = attachedItems.find(item => item.id === itemId);
+    if (!item) return;
+
+    setIsResizing(itemId);
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: item.width || 50,
+      height: item.height || 50
+    };
+
+    const handleMouseMove = (e) => {
+      const deltaX = e.clientX - resizeStartRef.current.x;
+      const deltaY = e.clientY - resizeStartRef.current.y;
+      const delta = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+      const scale = deltaX > 0 ? 1 : -1;
+      
+      const newSize = Math.max(20, resizeStartRef.current.width + (delta * scale * 0.5));
+
+      setAttachedItems(prev => 
+        prev.map(item => 
+          item.id === itemId 
+            ? { ...item, width: newSize, height: newSize }
+            : item
+        )
+      );
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // 회전 핸들러
+  const handleRotateStart = (e, itemId) => {
+    e.stopPropagation();
+    e.preventDefault();
+    
+    const item = attachedItems.find(item => item.id === itemId);
+    if (!item) return;
+
+    const calendarRect = document.querySelector('[data-calendar="true"]').getBoundingClientRect();
+    const centerX = item.x + (item.width || 50) / 2;
+    const centerY = item.y + (item.height || 50) / 2;
+    
+    setIsRotating(itemId);
+    rotateStartRef.current = {
+      angle: item.rotation || 0,
+      centerX: centerX,
+      centerY: centerY
+    };
+
+    const handleMouseMove = (e) => {
+      const mouseX = e.clientX - calendarRect.left;
+      const mouseY = e.clientY - calendarRect.top;
+      
+      const angle = Math.atan2(
+        mouseY - rotateStartRef.current.centerY, 
+        mouseX - rotateStartRef.current.centerX
+      ) * (180 / Math.PI);
+
+      setAttachedItems(prev => 
+        prev.map(item => 
+          item.id === itemId 
+            ? { ...item, rotation: angle }
+            : item
+        )
+      );
+    };
+
+    const handleMouseUp = () => {
+      setIsRotating(false);
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
@@ -217,16 +357,26 @@ function CalendarScreen({ onGoToMyPage }) {
       value: draggedItem.value,
       x: x,
       y: y,
-      rotation: Math.random() * 20 - 10
+      rotation: Math.random() * 20 - 10,
+      width: draggedItem.type === 'photo' ? 100 : (draggedItem.type === 'tape' ? 80 : 30),
+      height: draggedItem.type === 'photo' ? 100 : (draggedItem.type === 'tape' ? 25 : 30)
     };
 
     setAttachedItems(prev => [...prev, newItem]);
+    setEditingItems(prev => new Set([...prev, newItem.id])); // 새 아이템을 편집 모드로 설정
+    setSelectedItem(newItem.id);
     setDraggedItem(null);
   };
 
   const handleRemoveItem = (e, itemId) => {
     e.stopPropagation();
     setAttachedItems(prev => prev.filter(item => item.id !== itemId));
+    setEditingItems(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(itemId);
+      return newSet;
+    });
+    setSelectedItem(null);
   };
 
   // 캘린더 그리드 생성
@@ -245,28 +395,24 @@ function CalendarScreen({ onGoToMyPage }) {
     brown: 'linear-gradient(135deg, rgba(141,110,99,0.9), rgba(109,76,65,0.9))'
   };
 
-  const stickerTypes = {
-    a: '/image/01.png',
-    b: '/image/02.png',
-    c: '/image/03.png',
-    d: '/image/04.png',
-    e: '/image/05.png',
-    f: '/image/06.png',
-    g: '/image/07.png',
-    h: '/image/08.png',
-    i: '/image/09.png',
-    j: '/image/10.png',
-    k: '/image/11.png',
-    l: '/image/12.png'
+  const stickerEmojis = {
+    a: '🦋', b: '🌸', c: '⭐', d: '💖', e: '🌙', f: '☀️',
+    g: '🍀', h: '🎵', i: '✨', j: '🌈', k: '🎈', l: '🎀'
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: mainBg,
-      position: 'relative',
-      fontFamily: 'system-ui, -apple-system, sans-serif'
-    }}>
+    <div 
+      style={{
+        minHeight: '100vh',
+        background: mainBg,
+        position: 'relative',
+        fontFamily: 'system-ui, -apple-system, sans-serif'
+      }}
+      onClick={() => {
+        setSelectedItem(null);
+        // editingItems는 엔터키로만 해제하도록 유지
+      }}
+    >
       {/* 좌측 버튼들 */}
       <div style={{
         position: 'fixed',
@@ -295,19 +441,12 @@ function CalendarScreen({ onGoToMyPage }) {
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease'
           }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'scale(1.1)';
-            e.target.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'scale(1)';
-            e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-          }}
         >
           📤
         </button>
 
         <button
+          onClick={handlePhotoUpload}
           style={{
             width: '50px',
             height: '50px',
@@ -323,16 +462,8 @@ function CalendarScreen({ onGoToMyPage }) {
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease'
           }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'scale(1.1)';
-            e.target.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'scale(1)';
-            e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
-          }}
         >
-          +
+          📷
         </button>
 
         <button
@@ -351,14 +482,6 @@ function CalendarScreen({ onGoToMyPage }) {
             color: '#666',
             boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
             transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.target.style.transform = 'scale(1.1)';
-            e.target.style.boxShadow = '0 6px 20px rgba(0,0,0,0.15)';
-          }}
-          onMouseLeave={(e) => {
-            e.target.style.transform = 'scale(1)';
-            e.target.style.boxShadow = '0 4px 15px rgba(0,0,0,0.1)';
           }}
         >
           👤
@@ -395,7 +518,6 @@ function CalendarScreen({ onGoToMyPage }) {
             width: '140px',
             height: '40px',
             background: tapeStyles[selectedTape],
-            
             boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
             zIndex: 10
           }} />
@@ -435,8 +557,11 @@ function CalendarScreen({ onGoToMyPage }) {
                 transform: `rotate(${item.rotation}deg)`,
                 zIndex: isDraggingAttached === item.id ? 20 : 15,
                 cursor: isDraggingAttached === item.id ? 'grabbing' : 'grab',
-                userSelect: 'none'
+                userSelect: 'none',
+                border: editingItems.has(item.id) ? '2px dashed #3b82f6' : 'none',
+                borderRadius: '4px'
               }}
+              onClick={(e) => handleItemClick(e, item.id)}
               onMouseDown={(e) => handleAttachedItemMouseDown(e, item.id)}
               onContextMenu={(e) => {
                 e.preventDefault();
@@ -444,26 +569,103 @@ function CalendarScreen({ onGoToMyPage }) {
               }}
             >
               {item.type === 'sticker' && (
-                <img 
-                  src={stickerTypes[item.value]} 
-                  alt={item.value}
-                  style={{ 
-                    width: '30px', 
-                    height: '30px',
-                    filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
-                    pointerEvents: 'none'
-                  }}
-                />
+                <div style={{
+                  fontSize: `${item.width || 30}px`,
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+                  pointerEvents: 'none'
+                }}>
+                  {stickerEmojis[item.value]}
+                </div>
               )}
               {item.type === 'tape' && (
                 <div style={{
-                  width: '80px',
-                  height: '25px',
+                  width: `${item.width || 80}px`,
+                  height: `${item.height || 25}px`,
                   background: tapeStyles[item.value],
                   borderRadius: '2px',
                   boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
                   pointerEvents: 'none'
                 }} />
+              )}
+              {item.type === 'photo' && (
+                <div style={{
+                  width: `${item.width || 100}px`,
+                  height: `${item.height || 100}px`,
+                  backgroundImage: `url(${item.value})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  borderRadius: '4px',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                  pointerEvents: 'none'
+                }} />
+              )}
+              
+              {/* 편집 컨트롤들 */}
+              {editingItems.has(item.id) && (
+                <>
+                  {/* 리사이즈 핸들 */}
+                  <div
+                    onMouseDown={(e) => handleResizeStart(e, item.id)}
+                    style={{
+                      position: 'absolute',
+                      bottom: '-8px',
+                      right: '-8px',
+                      width: '16px',
+                      height: '16px',
+                      background: '#3b82f6',
+                      borderRadius: '50%',
+                      cursor: 'se-resize',
+                      border: '2px solid white',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                      zIndex: 30
+                    }}
+                  />
+                  
+                  {/* 회전 핸들 */}
+                  <div
+                    onMouseDown={(e) => handleRotateStart(e, item.id)}
+                    style={{
+                      position: 'absolute',
+                      top: '-12px',
+                      right: '50%',
+                      transform: 'translateX(50%)',
+                      width: '16px',
+                      height: '16px',
+                      background: '#10b981',
+                      borderRadius: '50%',
+                      cursor: 'grab',
+                      border: '2px solid white',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                      zIndex: 30
+                    }}
+                  />
+                  
+                  {/* 삭제 버튼 */}
+                  <div
+                    onClick={(e) => handleRemoveItem(e, item.id)}
+                    style={{
+                      position: 'absolute',
+                      top: '-8px',
+                      left: '-8px',
+                      width: '16px',
+                      height: '16px',
+                      background: '#ef4444',
+                      borderRadius: '50%',
+                      cursor: 'pointer',
+                      border: '2px solid white',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '10px',
+                      color: 'white',
+                      fontWeight: 'bold',
+                      zIndex: 30
+                    }}
+                  >
+                    ×
+                  </div>
+                </>
               )}
             </div>
           ))}
@@ -506,7 +708,6 @@ function CalendarScreen({ onGoToMyPage }) {
             display: 'grid',
             gridTemplateColumns: 'repeat(7, 1fr)',
             gridTemplateRows: 'repeat(6, 1fr)',
-            height: '300px',
             gap: '1px',
             background: '#f0f0f0'
           }}>
@@ -515,7 +716,8 @@ function CalendarScreen({ onGoToMyPage }) {
                 background: '#fff',
                 position: 'relative',
                 padding: '8px',
-                cursor: day ? 'pointer' : 'default'
+                cursor: day ? 'pointer' : 'default',
+                aspectRatio: '1 / 1',
               }}>
                 {day && (
                   <>
@@ -741,12 +943,6 @@ function CalendarScreen({ onGoToMyPage }) {
                     transition: 'all 0.2s ease',
                     border: selectedTape === key ? '2px solid #3b82f6' : '1px solid rgba(0,0,0,0.1)'
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'rotate(-8deg) scale(1.1)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'rotate(-8deg) scale(1)';
-                  }}
                 />
               ))}
             </div>
@@ -754,31 +950,24 @@ function CalendarScreen({ onGoToMyPage }) {
 
           {selectedMenu === 'sticker' && (
             <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-              {Object.entries(stickerTypes).map(([key, src]) => (
-                <img
+              {Object.entries(stickerEmojis).map(([key, emoji]) => (
+                <div
                   key={key}
-                  src={src}
-                  alt={key}
                   draggable
                   onDragStart={(e) => handleDragStart(e, 'sticker', key)}
                   onClick={() => setSelectedSticker(key)}
                   style={{
-                    width: '35px',
-                    height: '35px',
+                    fontSize: '30px',
                     cursor: 'grab',
                     transition: 'all 0.2s ease',
                     border: selectedSticker === key ? '2px solid #3b82f6' : '2px solid transparent',
                     borderRadius: '8px',
-                    padding: '2px',
+                    padding: '4px',
                     boxShadow: selectedSticker === key ? '0 4px 12px rgba(59,130,246,0.3)' : '0 2px 6px rgba(0,0,0,0.1)'
                   }}
-                  onMouseEnter={(e) => {
-                    e.target.style.transform = 'scale(1.15)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.target.style.transform = 'scale(1)';
-                  }}
-                />
+                >
+                  {emoji}
+                </div>
               ))}
             </div>
           )}
@@ -897,8 +1086,26 @@ function CalendarScreen({ onGoToMyPage }) {
           )}
         </div>
       )}
+
+      {/* 도움말 텍스트 */}
+      {editingItems.size > 0 && (
+        <div style={{
+          position: 'fixed',
+          top: '30px',
+          right: '30px',
+          background: 'rgba(0,0,0,0.8)',
+          color: 'white',
+          padding: '10px 15px',
+          borderRadius: '8px',
+          fontSize: '12px',
+          zIndex: 1001
+        }}>
+          파란점: 크기조절 | 초록점: 회전 | 빨간점: 삭제 | Enter: 편집종료
+        </div>
+      )}
     </div>
   );
 }
+
 
 export default CalendarScreen;
