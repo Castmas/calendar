@@ -1,0 +1,103 @@
+.main-menu {
+  position: fixed;
+  bottom: 120px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 30px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 15px 30px;
+  border-radius: 50px;
+  backdrop-filter: blur(10px);
+  z-index: 1000;
+
+  .menu-button {
+    background: none;
+    border: none;
+    padding: 10px;
+    border-radius: 15px;
+    cursor: pointer;
+    background-color: transparent;
+    transition: all 0.2s ease;
+
+    &.active {
+      background-color: rgba(59, 130, 246, 0.1);
+    }
+
+    &:hover {
+      background-color: rgba(59, 130, 246, 0.05);
+    }
+
+    .tape-preview {
+      width: 50px;
+      height: 15px;
+      background-size: cover;
+      background-repeat: no-repeat;
+      background-position: center;
+      border-radius: 2px;
+      transform: rotate(-8deg);
+    }
+
+    .sticker-preview {
+      width: 35px;
+      height: 35px;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .text-preview {
+      width: 35px;
+      height: 25px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: #666;
+    }
+
+    .calendar-bg-preview {
+      width: 35px;
+      height: 25px;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 3px;
+      position: relative;
+
+      .calendar-lines {
+        position: absolute;
+        left: 4px;
+        right: 4px;
+        height: 1px;
+        background: #dee2e6;
+
+        &:nth-child(1) { top: 4px; }
+        &:nth-child(2) { top: 7px; }
+        &:nth-child(3) { top: 10px; }
+      }
+    }
+
+    .main-bg-preview {
+      width: 35px;
+      height: 25px;
+      background: linear-gradient(45deg, #4facfe 0%, #00f2fe 100%);
+      border-radius: 3px;
+      position: relative;
+      overflow: hidden;
+
+      .bg-icon {
+        position: absolute;
+        top: 8px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.8);
+      }
+    }
+  }
+}
